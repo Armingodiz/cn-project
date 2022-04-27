@@ -63,9 +63,7 @@ func getSystemInfo() (*SysInfo, error) {
 	cpuStat, _ := cpu.Info()
 	vmStat, _ := mem.VirtualMemory()
 	diskStat, _ := disk.Usage("/")
-
 	info := new(SysInfo)
-
 	info.Hostname = hostStat.Hostname
 	info.Platform = hostStat.Platform
 	info.CPU = cpuStat[0].ModelName
