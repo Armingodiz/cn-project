@@ -6,12 +6,12 @@ import (
 )
 
 func main() {
-	tcpAddress, err := net.ResolveTCPAddr("localhost", "8080")
+	tcpAddress, err := net.ResolveTCPAddr("tcp", ":80")
 	if err != nil {
 		log.Println(err.Error())
 		return
 	}
-	connection, err := net.DialTCP("localhost", nil, tcpAddress)
+	connection, err := net.DialTCP("tcp", nil, tcpAddress)
 	if err != nil {
 		log.Println(err.Error())
 		return
@@ -21,10 +21,11 @@ func main() {
 		log.Println(err.Error())
 		return
 	}
-	var buffer []byte
+	buffer := make([]byte, 512)
 	_, err = connection.Read(buffer[0:])
 	if err != nil {
 		log.Println(err.Error())
 		return
 	}
+	log.Println(string(buffer))
 }
