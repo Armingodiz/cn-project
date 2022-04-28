@@ -5,10 +5,34 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"net/http"
+	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/push"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
+
+var (
+	tss = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "armin",
+		Help: "name of user",
+	}, []string{"agent"})
+)
+
+func init() {
+	prometheus.MustRegister(tss)
+	//	prometheus.MustRegister(opsProcessed)
+}
+
+func recordMetrics() {
+	tss.With(prometheus.Labels{"system_name": "mySystem"}).Add(118)
+	go func() {
+		for {
+			opsProcessed.Inc()
+			time.Sleep(2 * time.Second)
+		}
+	}()
+}
 
 type SysInfo struct {
 	Hostname     string  `json:"hostname"`
@@ -23,11 +47,30 @@ type SysInfo struct {
 
 func main() {
 
-	Push(&PushConfig{
+	recordMetrics()
+	/*Push(&PushConfig{
 		Instance: "server",
 		URL:      "http://prom-pushgateway:9091",
 		Job:      "metrics",
+	})*/
+	///////////////////////
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/metrics", http.StatusMovedPermanently)
 	})
+	mux.Handle("/metrics", promhttp.Handler())
+
+	httpServer := &http.Server{
+		Addr:    ":8080",
+		Handler: mux,
+	}
+
+	go func() {
+		log.Printf("Listening port: %s \n", httpServer.Addr)
+		log.Println(httpServer.ListenAndServe())
+	}()
+
+	/////////////
 
 	tcpAddress, err := net.ResolveTCPAddr("tcp", ":80")
 	if err != nil {
@@ -39,6 +82,7 @@ func main() {
 		log.Println(err.Error())
 		return
 	}
+
 	for {
 		fmt.Println("listenning on port 80 ...")
 		connection, err := listener.Accept()
@@ -76,18 +120,4 @@ type PushConfig struct {
 	Instance string
 	URL      string
 	Job      string
-}
-
-func Push(cfg *PushConfig) {
-	completionTime := prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "db_backup_last_completion_timestamp_seconds",
-		Help: "The timestamp of the last successful completion of a DB backup.",
-	})
-
-	pusher := push.New(cfg.URL, cfg.Job).Collector(completionTime).Grouping("instance", cfg.Instance)
-	if err := pusher.Push(); err != nil {
-		fmt.Println("Could not push to Pushgateway:", err)
-	} else {
-		fmt.Println("metrics sent")
-	}
 }
