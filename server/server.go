@@ -42,9 +42,6 @@ func init() {
 	prometheus.MustRegister(TotalCpu)
 }
 
-func recordMetrics() {
-}
-
 type SysInfo struct {
 	Hostname     string  `json:"hostname"`
 	RAM          uint64  `json:"ram"`
@@ -55,7 +52,7 @@ type SysInfo struct {
 }
 
 func main() {
-	recordMetrics()
+	// starting server to expose metrics
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/metrics", http.StatusMovedPermanently)
@@ -72,49 +69,63 @@ func main() {
 		log.Println(httpServer.ListenAndServe())
 	}()
 
-	tcpAddress, err := net.ResolveTCPAddr("tcp", ":80")
+	listener, err := createListener("tcp", ":80")
 	if err != nil {
-		log.Println(err.Error())
+		log.Println(err)
 		return
 	}
-	listener, err := net.ListenTCP("tcp", tcpAddress)
-	if err != nil {
-		log.Println(err.Error())
-		return
-	}
-
 	for {
-		fmt.Println("listenning on port 80 ...")
-		connection, err := listener.Accept()
+		connection, err := listenningForConnection(listener)
 		if err != nil {
-			log.Println(err.Error())
+			log.Println(err)
 			return
 		}
 		defer connection.Close()
 		for {
-			buffer := make([]byte, 4096)
-			n, err := connection.Read(buffer[0:])
+			metrics, err := readMetrics(connection)
 			if err != nil {
-				log.Println(err.Error())
-				break
-			}
-			var metrics SysInfo
-			err = json.Unmarshal(buffer[:n], &metrics)
-			if err != nil {
-				log.Println(err.Error())
-				break
-			}
-			if err != nil {
-				log.Println(err.Error())
-				break
+				log.Println(err)
+				return
 			}
 			log.Println(metrics)
-			Ram.With(prometheus.Labels{"agent": metrics.Hostname}).Add(float64(metrics.RAM))
-			Disk.With(prometheus.Labels{"agent": metrics.Hostname}).Add(float64(metrics.Disk))
-			UsedMemory.With(prometheus.Labels{"agent": metrics.Hostname}).Add(float64(metrics.UsedMemory))
-			CachedMemory.With(prometheus.Labels{"agent": metrics.Hostname}).Add(float64(metrics.CachedMemory))
-			TotalCpu.With(prometheus.Labels{"agent": metrics.Hostname}).Add(float64(metrics.TotalCpu))
+			convertInfoToPrometheusMetrics(metrics)
 		}
 
 	}
+}
+
+func createListener(network, address string) (listener *net.TCPListener, err error) {
+	tcpAddress, err := net.ResolveTCPAddr("tcp", ":80")
+	if err != nil {
+		return
+	}
+	listener, err = net.ListenTCP("tcp", tcpAddress)
+	return
+}
+
+func listenningForConnection(listener *net.TCPListener) (conn net.Conn, err error) {
+	fmt.Println("listenning on port 80 ...")
+	conn, err = listener.Accept()
+	if err != nil {
+		return
+	}
+	return
+}
+
+func readMetrics(connection net.Conn) (metrics SysInfo, err error) {
+	buffer := make([]byte, 4096)
+	n, err := connection.Read(buffer[0:])
+	if err != nil {
+		return
+	}
+	err = json.Unmarshal(buffer[:n], &metrics)
+	return
+}
+
+func convertInfoToPrometheusMetrics(info SysInfo) {
+	Ram.With(prometheus.Labels{"agent": info.Hostname}).Add(float64(info.RAM))
+	Disk.With(prometheus.Labels{"agent": info.Hostname}).Add(float64(info.Disk))
+	UsedMemory.With(prometheus.Labels{"agent": info.Hostname}).Add(float64(info.UsedMemory))
+	CachedMemory.With(prometheus.Labels{"agent": info.Hostname}).Add(float64(info.CachedMemory))
+	TotalCpu.With(prometheus.Labels{"agent": info.Hostname}).Add(float64(info.TotalCpu))
 }
