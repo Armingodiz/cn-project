@@ -3,18 +3,18 @@ global:
   scrape_timeout: 1s
   evaluation_interval: 15s
 scrape_configs:
-- job_name: dev-push-gateway
+#- job_name: dev-push-gateway
+#  metrics_path: /metrics
+#  scheme: http
+#  honor_labels: true
+#  static_configs:
+#  - targets: ['localhost:9091']
+#    labels:
+#      service: 'prom-pushgateway'
+- job_name: server
   metrics_path: /metrics
   scheme: http
-  honor_labels: true
   static_configs:
-  - targets: ['localhost:9091']
-    labels:
-      service: 'prom-pushgateway'
-- job_name: dev-app
-  metrics_path: /metrics
-  scheme: http
-  static_configs:
-  - targets: ['localhost:8080']
+  - targets: ['server:8080']
     labels:
       service: 'app-service'

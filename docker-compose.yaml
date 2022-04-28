@@ -1,11 +1,9 @@
 version: '3.2'
 services: 
-  prom-pushgateway:
-    image: prom/pushgateway
-    ports: 
-      - 9091:9091
   prometheus:
     image: prom/prometheus
+    depends_on:
+      - server
     volumes:
       - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
     command:
@@ -31,18 +29,12 @@ services:
     build:
       context: .
       dockerfile: client/Dockerfile
+    depends_on:
+      - server
     hostname: client
     working_dir: /root/
     networks:
         - default
-#  app1:
-#    build: .
-#    image: app:0.2
-#    ports:
-#      - "8080:8080"
-#    environment:
-#      - APP_INSTANCE=app1
-#      - APP_PUSH_GATEWAY=http://prom-pushgateway:9091
 
   grafana:
     image: grafana/grafana
