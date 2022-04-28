@@ -72,8 +72,6 @@ func main() {
 		log.Println(httpServer.ListenAndServe())
 	}()
 
-	/////////////
-
 	tcpAddress, err := net.ResolveTCPAddr("tcp", ":80")
 	if err != nil {
 		log.Println(err.Error())
@@ -93,32 +91,30 @@ func main() {
 			return
 		}
 		defer connection.Close()
-		_, err = connection.Write([]byte("hi agent"))
-		if err != nil {
-			log.Println(err.Error())
-			return
+		for {
+			buffer := make([]byte, 4096)
+			n, err := connection.Read(buffer[0:])
+			if err != nil {
+				log.Println(err.Error())
+				break
+			}
+			var metrics SysInfo
+			err = json.Unmarshal(buffer[:n], &metrics)
+			if err != nil {
+				log.Println(err.Error())
+				break
+			}
+			if err != nil {
+				log.Println(err.Error())
+				break
+			}
+			log.Println(metrics)
+			Ram.With(prometheus.Labels{"agent": metrics.Hostname}).Add(float64(metrics.RAM))
+			Disk.With(prometheus.Labels{"agent": metrics.Hostname}).Add(float64(metrics.Disk))
+			UsedMemory.With(prometheus.Labels{"agent": metrics.Hostname}).Add(float64(metrics.UsedMemory))
+			CachedMemory.With(prometheus.Labels{"agent": metrics.Hostname}).Add(float64(metrics.CachedMemory))
+			TotalCpu.With(prometheus.Labels{"agent": metrics.Hostname}).Add(float64(metrics.TotalCpu))
 		}
-		buffer := make([]byte, 4096)
-		n, err := connection.Read(buffer[0:])
-		if err != nil {
-			log.Println(err.Error())
-			return
-		}
-		var metrics SysInfo
-		err = json.Unmarshal(buffer[:n], &metrics)
-		if err != nil {
-			log.Println(err.Error())
-			return
-		}
-		if err != nil {
-			log.Println(err.Error())
-			return
-		}
-		log.Println(metrics)
-		Ram.With(prometheus.Labels{"agent": metrics.Hostname}).Add(float64(metrics.RAM))
-		Disk.With(prometheus.Labels{"agent": metrics.Hostname}).Add(float64(metrics.Disk))
-		UsedMemory.With(prometheus.Labels{"agent": metrics.Hostname}).Add(float64(metrics.UsedMemory))
-		CachedMemory.With(prometheus.Labels{"agent": metrics.Hostname}).Add(float64(metrics.CachedMemory))
-		TotalCpu.With(prometheus.Labels{"agent": metrics.Hostname}).Add(float64(metrics.TotalCpu))
+
 	}
 }
