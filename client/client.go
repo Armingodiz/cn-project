@@ -17,7 +17,7 @@ import (
 )
 
 func main() {
-	tcpAddress, err := net.ResolveTCPAddr("tcp", ":80")
+	tcpAddress, err := net.ResolveTCPAddr("tcp", "server:80")
 	if err != nil {
 		log.Println(err.Error())
 		return

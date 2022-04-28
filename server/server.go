@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"log"
 	"net"
+
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/push"
 )
 
 type SysInfo struct {
@@ -19,6 +22,17 @@ type SysInfo struct {
 }
 
 func main() {
+	completionTime := prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "db_backup_last_completion_timestamp_seconds",
+		Help: "The timestamp of the last successful completion of a DB backup.",
+	})
+	completionTime.SetToCurrentTime()
+	if err := push.New("http://localhost:9091", "metrics").
+		Collector(completionTime).
+		Push(); err != nil {
+		fmt.Println("Could not push completion time to Pushgateway:", err)
+	}
+
 	tcpAddress, err := net.ResolveTCPAddr("tcp", ":80")
 	if err != nil {
 		log.Println(err.Error())
