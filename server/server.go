@@ -6,38 +6,47 @@ import (
 	"log"
 	"net"
 	"net/http"
-	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 var (
-	tss = prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Name: "armin",
-		Help: "name of user",
+	Ram = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "RAM",
+		Help: "ram of agent",
+	}, []string{"agent"})
+	Disk = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "DISK",
+		Help: "disk of agent",
+	}, []string{"agent"})
+	UsedMemory = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "USED_MEMORY",
+		Help: "used memory of agent",
+	}, []string{"agent"})
+	CachedMemory = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "CACHED_MEMORY",
+		Help: "cached memory of agent",
+	}, []string{"agent"})
+	TotalCpu = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "TOTAL_CPU",
+		Help: "total cpu of agent",
 	}, []string{"agent"})
 )
 
 func init() {
-	prometheus.MustRegister(tss)
-	//	prometheus.MustRegister(opsProcessed)
+	prometheus.MustRegister(Ram)
+	prometheus.MustRegister(Disk)
+	prometheus.MustRegister(UsedMemory)
+	prometheus.MustRegister(CachedMemory)
+	prometheus.MustRegister(TotalCpu)
 }
 
 func recordMetrics() {
-	tss.With(prometheus.Labels{"system_name": "mySystem"}).Add(118)
-	go func() {
-		for {
-			opsProcessed.Inc()
-			time.Sleep(2 * time.Second)
-		}
-	}()
 }
 
 type SysInfo struct {
 	Hostname     string  `json:"hostname"`
-	Platform     string  `json:"platform"`
-	CPU          string  `json:"cpu"`
 	RAM          uint64  `json:"ram"`
 	Disk         uint64  `json:"disk"`
 	UsedMemory   uint64  `json:"used_memory"`
@@ -46,14 +55,7 @@ type SysInfo struct {
 }
 
 func main() {
-
 	recordMetrics()
-	/*Push(&PushConfig{
-		Instance: "server",
-		URL:      "http://prom-pushgateway:9091",
-		Job:      "metrics",
-	})*/
-	///////////////////////
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/metrics", http.StatusMovedPermanently)
@@ -91,7 +93,7 @@ func main() {
 			return
 		}
 		defer connection.Close()
-		_, err = connection.Write([]byte("hi armin"))
+		_, err = connection.Write([]byte("hi agent"))
 		if err != nil {
 			log.Println(err.Error())
 			return
@@ -113,11 +115,10 @@ func main() {
 			return
 		}
 		log.Println(metrics)
+		Ram.With(prometheus.Labels{"agent": metrics.Hostname}).Add(float64(metrics.RAM))
+		Disk.With(prometheus.Labels{"agent": metrics.Hostname}).Add(float64(metrics.Disk))
+		UsedMemory.With(prometheus.Labels{"agent": metrics.Hostname}).Add(float64(metrics.UsedMemory))
+		CachedMemory.With(prometheus.Labels{"agent": metrics.Hostname}).Add(float64(metrics.CachedMemory))
+		TotalCpu.With(prometheus.Labels{"agent": metrics.Hostname}).Add(float64(metrics.TotalCpu))
 	}
-}
-
-type PushConfig struct {
-	Instance string
-	URL      string
-	Job      string
 }
