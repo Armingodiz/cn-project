@@ -22,16 +22,12 @@ type SysInfo struct {
 }
 
 func main() {
-	completionTime := prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "db_backup_last_completion_timestamp_seconds",
-		Help: "The timestamp of the last successful completion of a DB backup.",
+
+	Push(&PushConfig{
+		Instance: "server",
+		URL:      "http://prom-pushgateway:9091",
+		Job:      "metrics",
 	})
-	completionTime.SetToCurrentTime()
-	if err := push.New("http://localhost:9091", "metrics").
-		Collector(completionTime).
-		Push(); err != nil {
-		fmt.Println("Could not push completion time to Pushgateway:", err)
-	}
 
 	tcpAddress, err := net.ResolveTCPAddr("tcp", ":80")
 	if err != nil {
@@ -73,5 +69,25 @@ func main() {
 			return
 		}
 		log.Println(metrics)
+	}
+}
+
+type PushConfig struct {
+	Instance string
+	URL      string
+	Job      string
+}
+
+func Push(cfg *PushConfig) {
+	completionTime := prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "db_backup_last_completion_timestamp_seconds",
+		Help: "The timestamp of the last successful completion of a DB backup.",
+	})
+
+	pusher := push.New(cfg.URL, cfg.Job).Collector(completionTime).Grouping("instance", cfg.Instance)
+	if err := pusher.Push(); err != nil {
+		fmt.Println("Could not push to Pushgateway:", err)
+	} else {
+		fmt.Println("metrics sent")
 	}
 }
