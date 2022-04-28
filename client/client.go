@@ -16,47 +16,53 @@ import (
 )
 
 func main() {
-	tcpAddress, err := net.ResolveTCPAddr("tcp", "server:80")
+	var conn *net.TCPConn
+	var err error
+	for {
+		conn, err = connectToServer("tcp", "server:80")
+		if err != nil {
+			log.Println(err)
+		} else {
+			err = sendMetrics(conn, 5)
+			log.Println(err)
+		}
+	}
+
+}
+
+// try to make a tcp connection and returns the connection or error
+func connectToServer(network, address string) (connection *net.TCPConn, err error) {
+	tcpAddress, err := net.ResolveTCPAddr(network, address)
 	if err != nil {
-		log.Println(err.Error())
 		return
 	}
-	connection, err := net.DialTCP("tcp", nil, tcpAddress)
-	if err != nil {
-		log.Println(err.Error())
-		return
-	}
-	ticker := time.NewTicker(5 * time.Second)
+	connection, err = net.DialTCP(network, nil, tcpAddress)
+	return
+}
+
+// send system info as metrics through tcp connection every timeInterval second
+func sendMetrics(conn *net.TCPConn, timeInterval int) error {
+	ticker := time.NewTicker(time.Duration(timeInterval) * time.Second)
 	done := make(chan bool)
 	for {
 		select {
 		case <-done:
-			return
+			return nil
 		case t := <-ticker.C:
 			{
 				log.Println(t)
 				info, _ := getSystemInfo()
 				bytes, err := json.Marshal(info)
 				if err != nil {
-					log.Println(err.Error())
-					return
+					return err
 				}
-				_, err = connection.Write(bytes)
+				_, err = conn.Write(bytes)
 				if err != nil {
-					log.Println(err.Error())
-					return
+					return err
 				}
-				buffer := make([]byte, 512)
-				_, err = connection.Read(buffer[0:])
-				if err != nil {
-					log.Println(err.Error())
-					return
-				}
-				log.Println(string(buffer))
 			}
 		}
 	}
-
 }
 
 type SysInfo struct {
