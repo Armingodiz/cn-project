@@ -22,9 +22,12 @@ func main() {
 		conn, err = connectToServer("tcp", "server:80")
 		if err != nil {
 			log.Println(err)
+			time.Sleep(time.Second * 10)
 		} else {
-			err = sendMetrics(conn, 5)
-			log.Println(err)
+			err = sendMetrics(conn)
+			if err != nil {
+				log.Println(err)
+			}
 		}
 	}
 
@@ -41,28 +44,17 @@ func connectToServer(network, address string) (connection *net.TCPConn, err erro
 }
 
 // send system info as metrics through tcp connection every timeInterval second
-func sendMetrics(conn *net.TCPConn, timeInterval int) error {
-	ticker := time.NewTicker(time.Duration(timeInterval) * time.Second)
-	done := make(chan bool)
-	for {
-		select {
-		case <-done:
-			return nil
-		case t := <-ticker.C:
-			{
-				log.Println(t)
-				info, _ := getSystemInfo()
-				bytes, err := json.Marshal(info)
-				if err != nil {
-					return err
-				}
-				_, err = conn.Write(bytes)
-				if err != nil {
-					return err
-				}
-			}
-		}
+func sendMetrics(conn *net.TCPConn) error {
+	info, _ := getSystemInfo()
+	bytes, err := json.Marshal(info)
+	if err != nil {
+		return err
 	}
+	_, err = conn.Write(bytes)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 type SysInfo struct {

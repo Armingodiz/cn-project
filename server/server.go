@@ -75,36 +75,33 @@ func main() {
 		return
 	}
 	for {
-		connection, err := listenningForConnection(listener)
+		connection, err := listenningForConnection(listener, ":80")
 		if err != nil {
 			log.Println(err)
 			return
 		}
 		defer connection.Close()
-		for {
-			metrics, err := readMetrics(connection)
-			if err != nil {
-				log.Println(err)
-				return
-			}
+		metrics, err := readMetrics(connection)
+		if err != nil {
+			log.Println(err)
+		} else {
 			log.Println(metrics)
 			convertInfoToPrometheusMetrics(metrics)
 		}
-
 	}
 }
 
 func createListener(network, address string) (listener *net.TCPListener, err error) {
-	tcpAddress, err := net.ResolveTCPAddr("tcp", ":80")
+	tcpAddress, err := net.ResolveTCPAddr(network, address)
 	if err != nil {
 		return
 	}
-	listener, err = net.ListenTCP("tcp", tcpAddress)
+	listener, err = net.ListenTCP(network, tcpAddress)
 	return
 }
 
-func listenningForConnection(listener *net.TCPListener) (conn net.Conn, err error) {
-	fmt.Println("listenning on port 80 ...")
+func listenningForConnection(listener *net.TCPListener, port string) (conn net.Conn, err error) {
+	fmt.Println("listenning on port " + port + " ...")
 	conn, err = listener.Accept()
 	if err != nil {
 		return
