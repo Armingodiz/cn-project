@@ -59,27 +59,22 @@ func main() {
 		http.Redirect(w, r, "/metrics", http.StatusMovedPermanently)
 	})
 	mux.Handle("/metrics", promhttp.Handler())
-
 	httpServer := &http.Server{
 		Addr:    ":8080",
 		Handler: mux,
 	}
-
 	go func() {
 		log.Printf("Listening port: %s \n", httpServer.Addr)
 		log.Println(httpServer.ListenAndServe())
 	}()
-
 	network := os.Getenv("SERVER_NETWORK")
 	port := os.Getenv("SERVER_PORT")
-
 	if network == "" {
 		network = "tcp"
 	}
 	if port == "" {
 		port = ":80"
 	}
-
 	listener, err := createListener(network, port)
 	if err != nil {
 		log.Println(err)

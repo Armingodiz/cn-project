@@ -10,3 +10,4 @@ scrape_configs:
   - targets: ['server:8080']
     labels:
       service: 'app-service'
+

@@ -36,6 +36,9 @@ services:
       - server
     hostname: client1
     working_dir: /root/
+    environment:
+      - SERVER_NETWORK=tcp
+      - SERVER_ADDRESS=server:80
     networks:
       - default
 
@@ -47,6 +50,9 @@ services:
       - server
     hostname: client2
     working_dir: /root/
+    environment:
+      - SERVER_NETWORK=tcp
+      - SERVER_ADDRESS=server:80
     networks:
       - default
 
@@ -58,6 +64,9 @@ services:
       - server
     hostname: client3
     working_dir: /root/
+    environment:
+      - SERVER_NETWORK=tcp
+      - SERVER_ADDRESS=server:80
     networks:
       - default
 

@@ -12,10 +12,6 @@ RUN go mod download
 COPY ./client .
 
 
-
-
-
-
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build 
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o client .
 
@@ -24,3 +20,5 @@ RUN apk --no-cache add ca-certificates
 WORKDIR /root/
 COPY --from=go-build /app .
 ENTRYPOINT ["./client"]
+
+

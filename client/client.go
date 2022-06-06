@@ -18,8 +18,16 @@ import (
 func main() {
 	var conn *net.TCPConn
 	var err error
+	network := os.Getenv("SERVER_NETWORK")
+	address := os.Getenv("SERVER_ADDRESS")
+	if network == "" {
+		network = "tcp"
+	}
+	if address == "" {
+		address = "localhost:80"
+	}
 	for {
-		conn, err = connectToServer("tcp", "server:80")
+		conn, err = connectToServer(network, address)
 		if err != nil {
 			log.Println(err)
 		} else {
