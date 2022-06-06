@@ -22,13 +22,13 @@ func main() {
 		conn, err = connectToServer("tcp", "server:80")
 		if err != nil {
 			log.Println(err)
-			time.Sleep(time.Second * 10)
 		} else {
 			err = sendMetrics(conn)
 			if err != nil {
 				log.Println(err)
 			}
 		}
+		time.Sleep(time.Second * 10)
 	}
 
 }

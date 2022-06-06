@@ -6,6 +6,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"os"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -69,13 +70,23 @@ func main() {
 		log.Println(httpServer.ListenAndServe())
 	}()
 
-	listener, err := createListener("tcp", ":80")
+	network := os.Getenv("SERVER_NETWORK")
+	port := os.Getenv("SERVER_PORT")
+
+	if network == "" {
+		network = "tcp"
+	}
+	if port == "" {
+		port = ":80"
+	}
+
+	listener, err := createListener(network, port)
 	if err != nil {
 		log.Println(err)
 		return
 	}
 	for {
-		connection, err := listenningForConnection(listener, ":80")
+		connection, err := listenningForConnection(listener, port)
 		if err != nil {
 			log.Println(err)
 			return
@@ -85,7 +96,7 @@ func main() {
 		if err != nil {
 			log.Println(err)
 		} else {
-			log.Println(metrics)
+			fmt.Printf("%v\n", metrics)
 			convertInfoToPrometheusMetrics(metrics)
 		}
 	}
