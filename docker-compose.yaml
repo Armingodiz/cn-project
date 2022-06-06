@@ -25,13 +25,35 @@ services:
     ports:
       - '8080:8080'
 
-  client:
+  client1:
     build:
       context: .
       dockerfile: client/Dockerfile
     depends_on:
       - server
-    hostname: client
+    hostname: client1
+    working_dir: /root/
+    networks:
+        - default
+
+  client2:
+    build:
+      context: .
+      dockerfile: client/Dockerfile
+    depends_on:
+      - server
+    hostname: client2
+    working_dir: /root/
+    networks:
+        - default
+
+  client3:
+    build:
+      context: .
+      dockerfile: client/Dockerfile
+    depends_on:
+      - server
+    hostname: client3
     working_dir: /root/
     networks:
         - default
